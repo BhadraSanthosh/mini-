@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Catch the Coin</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#efe6ff;--ink:#4b3a7a;--accent:#a78bfa;--soft:#d9c8ff}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:"Nunito","Trebuchet MS",system-ui,sans-serif;font-weight:600;display:flex;flex-direction:column;align-items:center;padding:14px}
+a{color:var(--accent);font-weight:800}
+#hud{display:flex;gap:8px;justify-content:space-between;width:100%;max-width:360px;margin:4px 0 10px}
+#hud span{flex:1;text-align:center;background:#fff;border:3px solid var(--soft);border-radius:999px;padding:6px 4px;font-size:.9rem}
+#hud b{font-weight:800}
+#wrap{position:relative;width:100%;max-width:360px}
+canvas{width:100%;aspect-ratio:360/520;display:block;border-radius:24px;border:4px solid #fff;box-shadow:0 8px 24px rgba(120,90,200,.25);touch-action:none}
+#panel{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;background:rgba(239,230,255,.93);border-radius:24px;padding:20px}
+#panel h1{margin:0;font-size:1.6rem;font-weight:800}
+#panel p{margin:0;max-width:260px;line-height:1.4}
+.bun{width:96px;height:96px}
+.eh,.mh,.ms{display:none}
+button{padding:12px 26px;border:0;border-radius:999px;background:var(--accent);color:#fff;font-family:inherit;font-weight:800;font-size:1rem;cursor:pointer;box-shadow:0 4px 0 #8467e0}
+button:active{transform:translateY(2px);box-shadow:0 2px 0 #8467e0}
+button:focus-visible,a:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+</style>
+</head>
+<body>
+<div id="hud"><span>Score <b id="sc">0</b></span><span>Time <b id="tm">30</b></span><span>Best <b id="bs">0</b></span></div>
+<div id="wrap">
+  <canvas id="c" width="360" height="520"></canvas>
+  <div id="panel">
+    <svg class="bun" viewBox="0 0 100 100" aria-hidden="true">
+      <ellipse cx="34" cy="24" rx="9" ry="21" fill="#fff" stroke="#b79cf0" stroke-width="3"/><ellipse cx="34" cy="27" rx="4" ry="13" fill="#ffc8e2"/>
+      <ellipse cx="66" cy="24" rx="9" ry="21" fill="#fff" stroke="#b79cf0" stroke-width="3"/><ellipse cx="66" cy="27" rx="4" ry="13" fill="#ffc8e2"/>
+      <circle cx="50" cy="64" r="32" fill="#fff" stroke="#b79cf0" stroke-width="3"/>
+      <circle cx="39" cy="61" r="4" fill="#4b3a7a"/><circle cx="61" cy="61" r="4" fill="#4b3a7a"/>
+      <ellipse cx="30" cy="72" rx="6" ry="4" fill="#ffc8e2"/><ellipse cx="70" cy="72" rx="6" ry="4" fill="#ffc8e2"/>
+      <ellipse cx="50" cy="67" rx="3" ry="2" fill="#ff9ec7"/>
+      <path d="M44 73q6 6 12 0" fill="none" stroke="#4b3a7a" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+    <h1 id="title">Catch the Coin</h1>
+    <p id="info">Slide the basket with your finger, mouse or arrow keys. Happy coins give +1. Grumpy bombs take away 5. You have 30 seconds.</p>
+    <button id="go">Start</button>
+    <button id="share" hidden>Copy score</button>
+    <a href="index.html">All games</a>
+  </div>
+</div>
+<script>
+const cv=document.getElementById("c"),ctx=cv.getContext("2d"),W=360,H=520,TAU=Math.PI*2;
+const $=id=>document.getElementById(id);
+const INK="#4b3a7a";
+let best=0;try{best=+localStorage.getItem("coinBest")||0}catch(e){}
+$("bs").textContent=best;
+const basket={x:W/2,w:76};
+const BY=H-64;
+const stars=Array.from({length:18},(_,i)=>({x:(i*83+20)%340+10,y:(i*131+30)%480+10,r:1.5+(i%3)}));
+let items=[],score=0,t0=0,running=false,last=0,spawn=0,flash=0,mood="normal",moodT=0,keys={};
+const DURATION=30;
+
+function dot(x,y,r){ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fill()}
+function blush(x,y,r){ctx.fillStyle="rgba(255,140,180,.6)";ctx.beginPath();ctx.ellipse(x,y,r*1.4,r,0,0,TAU);ctx.fill()}
+
+function drawCoin(x,y){
+  ctx.beginPath();ctx.arc(x,y,14,0,TAU);ctx.fillStyle="#ffe08a";ctx.fill();
+  ctx.lineWidth=3;ctx.strokeStyle="#f0b429";ctx.stroke();
+  ctx.fillStyle="#6b4a1e";dot(x-5,y-2,1.8);dot(x+5,y-2,1.8);
+  ctx.beginPath();ctx.arc(x,y+2,4,.2,Math.PI-.2);ctx.strokeStyle="#6b4a1e";ctx.lineWidth=1.8;ctx.stroke();
+  blush(x-9,y+3,2.3);blush(x+9,y+3,2.3);
+}
+function drawBomb(x,y){
+  ctx.beginPath();ctx.arc(x,y,14,0,TAU);ctx.fillStyle="#7c5cc4";ctx.fill();
+  ctx.lineWidth=3;ctx.strokeStyle=INK;ctx.stroke();
+  ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.lineCap="round";
+  ctx.beginPath();ctx.moveTo(x-9,y-8);ctx.lineTo(x-2,y-4);ctx.moveTo(x+9,y-8);ctx.lineTo(x+2,y-4);ctx.stroke();
+  ctx.fillStyle="#fff";dot(x-5,y,2);dot(x+5,y,2);
+  ctx.beginPath();ctx.arc(x,y+10,4,Math.PI+.3,-.3);ctx.stroke();
+  ctx.strokeStyle=INK;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x+8,y-11);ctx.lineTo(x+13,y-18);ctx.stroke();
+  ctx.fillStyle="#ff8fb8";dot(x+13,y-19,3.5);
+}
+function drawHero(x){
+  const cy=BY+34;
+  ctx.lineWidth=3;ctx.strokeStyle="#b79cf0";
+  ctx.fillStyle="#fff";
+  [-17,17].forEach(dx=>{ctx.beginPath();ctx.arc(x+dx,cy-18,8,0,TAU);ctx.fill();ctx.stroke()});
+  ctx.fillStyle="#ffc8e2";[-17,17].forEach(dx=>dot(x+dx,cy-18,4));
+  ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(x,cy,26,0,TAU);ctx.fill();ctx.stroke();
+  ctx.strokeStyle=INK;ctx.fillStyle=INK;ctx.lineWidth=2.5;ctx.lineCap="round";
+  if(mood=="happy"){
+    ctx.beginPath();ctx.arc(x-8,cy-2,4,Math.PI+.4,-.4);ctx.stroke();
+    ctx.beginPath();ctx.arc(x+8,cy-2,4,Math.PI+.4,-.4);ctx.stroke();
+    ctx.fillStyle="#ff9ec7";ctx.beginPath();ctx.arc(x,cy+5,6,0,Math.PI);ctx.fill();ctx.stroke();
+  }else if(mood=="ouch"){
+    ctx.beginPath();ctx.moveTo(x-12,cy-6);ctx.lineTo(x-5,cy);ctx.moveTo(x-12,cy);ctx.lineTo(x-5,cy-6);
+    ctx.moveTo(x+5,cy-6);ctx.lineTo(x+12,cy);ctx.moveTo(x+5,cy);ctx.lineTo(x+12,cy-6);ctx.stroke();
+    ctx.beginPath();ctx.arc(x,cy+8,3,0,TAU);ctx.stroke();
+  }else{
+    dot(x-8,cy-2,3);dot(x+8,cy-2,3);
+    ctx.beginPath();ctx.arc(x,cy+3,4,.2,Math.PI-.2);ctx.stroke();
+  }
+  blush(x-15,cy+5,3);blush(x+15,cy+5,3);
+  ctx.fillStyle="#b79cf0";ctx.beginPath();
+  ctx.moveTo(x-38,BY);ctx.lineTo(x+38,BY);ctx.lineTo(x+30,BY+16);ctx.lineTo(x-30,BY+16);ctx.closePath();ctx.fill();
+  ctx.fillStyle="#9d7fe0";ctx.fillRect(x-40,BY-3,80,7);
+}
+function render(){
+  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,"#f3ecff");g.addColorStop(1,"#d9c8ff");
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="rgba(255,255,255,.85)";stars.forEach(s=>dot(s.x,s.y,s.r));
+  if(flash>0){ctx.fillStyle="rgba(255,120,160,.3)";ctx.fillRect(0,0,W,H)}
+  items.forEach(it=>it.bomb?drawBomb(it.x,it.y):drawCoin(it.x,it.y));
+  drawHero(basket.x);
+}
+function start(){
+  items=[];score=0;spawn=0;flash=0;mood="normal";moodT=0;running=true;
+  last=performance.now();t0=last;basket.x=W/2;
+  $("panel").hidden=true;$("sc").textContent=0;$("tm").textContent=DURATION;
+  requestAnimationFrame(loop);
+}
+function end(){
+  running=false;
+  const isNew=score>best;
+  if(isNew){best=score;try{localStorage.setItem("coinBest",best)}catch(e){}$("bs").textContent=best}
+  $("title").textContent="Time's up! Score: "+score;
+  $("info").textContent=isNew?"New best score!":"Your best is "+best+".";
+  $("go").textContent="Play again";$("share").textContent="Copy score";$("share").hidden=false;$("panel").hidden=false;
+  mood="happy";render();
+}
+function loop(now){
+  if(!running)return;
+  const dt=Math.min((now-last)/1000,.05);last=now;
+  const elapsed=(now-t0)/1000,left=DURATION-elapsed;
+  $("tm").textContent=Math.max(0,Math.ceil(left));
+  if(left<=0){end();return}
+  const speed=1+elapsed/DURATION;
+  if(keys.ArrowLeft||keys.a)basket.x-=320*dt;
+  if(keys.ArrowRight||keys.d)basket.x+=320*dt;
+  basket.x=Math.max(basket.w/2,Math.min(W-basket.w/2,basket.x));
+  spawn-=dt;
+  if(spawn<=0){spawn=.55/speed;items.push({x:20+Math.random()*(W-40),y:-20,v:(120+Math.random()*80)*speed,bomb:Math.random()<.22})}
+  items=items.filter(it=>{
+    it.y+=it.v*dt;
+    if(it.y>BY-6&&it.y<BY+30&&Math.abs(it.x-basket.x)<basket.w/2+4){
+      if(it.bomb){score=Math.max(0,score-5);flash=.25;mood="ouch";moodT=.5}
+      else{score++;mood="happy";moodT=.35}
+      $("sc").textContent=score;return false}
+    return it.y<H+20});
+  flash=Math.max(0,flash-dt);
+  if(moodT>0){moodT-=dt;if(moodT<=0)mood="normal"}
+  render();
+  requestAnimationFrame(loop);
+}
+function move(clientX){const r=cv.getBoundingClientRect();basket.x=(clientX-r.left)/r.width*W}
+cv.addEventListener("pointermove",e=>move(e.clientX));
+cv.addEventListener("pointerdown",e=>move(e.clientX));
+addEventListener("keydown",e=>{const k=e.key.length==1?e.key.toLowerCase():e.key;keys[k]=true;if(k=="ArrowLeft"||k=="ArrowRight")e.preventDefault()});
+addEventListener("keyup",e=>{const k=e.key.length==1?e.key.toLowerCase():e.key;keys[k]=false});
+$("go").onclick=start;
+$("share").onclick=async()=>{
+  const text="I caught "+score+" points in Catch the Coin! Can you beat me? "+location.href.split("?")[0];
+  try{await navigator.clipboard.writeText(text);$("share").textContent="Copied!"}catch(e){prompt("Copy your score:",text)}
+};
+render();
+</script>
+</body>
+</html>

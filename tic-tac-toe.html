@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tic Tac Toe</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#efe6ff;--ink:#4b3a7a;--accent:#a78bfa;--soft:#d9c8ff}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:"Nunito","Trebuchet MS",system-ui,sans-serif;font-weight:600;display:flex;flex-direction:column;align-items:center;padding:14px;gap:10px}
+h1{margin:0;font-size:1.6rem;font-weight:800}
+a{color:var(--accent);font-weight:800}
+#modes{display:flex;gap:8px}
+.m{padding:8px 16px;border:3px solid var(--soft);border-radius:999px;background:#fff;color:var(--ink);font-family:inherit;font-weight:800;cursor:pointer}
+.m.on{background:var(--accent);border-color:var(--accent);color:#fff}
+#score{display:flex;gap:8px;width:min(320px,92vw)}
+#score div{flex:1;background:#fff;border:3px solid var(--soft);border-radius:18px;padding:6px;text-align:center;font-size:.85rem}
+#score svg{width:34px;height:34px;display:block;margin:0 auto 2px}
+#score b{font-size:1.2rem;font-weight:800}
+#status{background:#fff;border:3px solid var(--soft);border-radius:16px;padding:8px 16px;min-height:42px;text-align:center}
+#board{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:min(320px,92vw)}
+.c{aspect-ratio:1;border:0;border-radius:20px;background:#f8f3ff;box-shadow:0 4px 0 var(--soft);cursor:pointer;padding:12px}
+.c:disabled{cursor:default}
+.c.win{background:#a8e6cf;box-shadow:0 4px 0 #7fcfb0}
+.c svg{width:100%;height:100%;display:block}
+button.b{padding:11px 22px;border:0;border-radius:999px;background:var(--accent);color:#fff;font-family:inherit;font-weight:800;font-size:1rem;cursor:pointer;box-shadow:0 4px 0 #8467e0}
+button:focus-visible,a:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+</style>
+</head>
+<body>
+<h1>Tic Tac Toe</h1>
+<div>Get three in a row! <a href="index.html">All games</a></div>
+<div id="modes">
+  <button class="m on" id="mbot">Play the bot</button>
+  <button class="m" id="mfriend">Play a friend</button>
+</div>
+<div id="score"></div>
+<div id="status" role="status"></div>
+<div id="board"></div>
+<button class="b" id="again">New round</button>
+<script>
+const BUN='<svg viewBox="0 0 100 100" aria-hidden="true"><ellipse cx="34" cy="24" rx="9" ry="21" fill="#fff" stroke="#b79cf0" stroke-width="4"/><ellipse cx="34" cy="27" rx="4" ry="13" fill="#ffc8e2"/><ellipse cx="66" cy="24" rx="9" ry="21" fill="#fff" stroke="#b79cf0" stroke-width="4"/><ellipse cx="66" cy="27" rx="4" ry="13" fill="#ffc8e2"/><circle cx="50" cy="64" r="32" fill="#fff" stroke="#b79cf0" stroke-width="4"/><circle cx="39" cy="61" r="4" fill="#4b3a7a"/><circle cx="61" cy="61" r="4" fill="#4b3a7a"/><ellipse cx="30" cy="72" rx="6" ry="4" fill="#ffc8e2"/><ellipse cx="70" cy="72" rx="6" ry="4" fill="#ffc8e2"/><ellipse cx="50" cy="67" rx="3" ry="2" fill="#ff9ec7"/><path d="M44 73q6 6 12 0" fill="none" stroke="#4b3a7a" stroke-width="3" stroke-linecap="round"/></svg>';
+const CAT='<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M20 44L24 8L50 26Z" fill="#ffd6a5" stroke="#e8a96a" stroke-width="4" stroke-linejoin="round"/><path d="M80 44L76 8L50 26Z" fill="#ffd6a5" stroke="#e8a96a" stroke-width="4" stroke-linejoin="round"/><circle cx="50" cy="62" r="34" fill="#ffd6a5" stroke="#e8a96a" stroke-width="4"/><circle cx="38" cy="58" r="4" fill="#4b3a7a"/><circle cx="62" cy="58" r="4" fill="#4b3a7a"/><ellipse cx="28" cy="70" rx="6" ry="4" fill="#ff9ec7" opacity=".7"/><ellipse cx="72" cy="70" rx="6" ry="4" fill="#ff9ec7" opacity=".7"/><path d="M47 66h6l-3 4z" fill="#ff7aa8"/><path d="M50 70q-5 6-10 2M50 70q5 6 10 2" fill="none" stroke="#4b3a7a" stroke-width="3" stroke-linecap="round"/><path d="M14 62h14M14 70l14-3M86 62H72M86 70l-14-3" stroke="#e8a96a" stroke-width="2.5" stroke-linecap="round"/></svg>';
+const ICON={b:BUN,c:CAT},NAME={b:"Bunny",c:"Kitty"};
+const LINES=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+const $=id=>document.getElementById(id);
+let board,turn,starter="c",over,mode="bot",busy=false,score={b:0,c:0,d:0},winLine=[];
+
+function build(){
+  $("board").innerHTML="";
+  for(let i=0;i<9;i++){const c=document.createElement("button");c.className="c";c.id="c"+i;c.onclick=()=>click(i);$("board").appendChild(c)}
+}
+function renderScore(){
+  $("score").innerHTML='<div>'+BUN+'Bunny<br><b>'+score.b+'</b></div><div><br>Draws<br><b>'+score.d+'</b></div><div>'+CAT+(mode=="bot"?"Bot Kitty":"Kitty")+'<br><b>'+score.c+'</b></div>';
+}
+function render(){
+  for(let i=0;i<9;i++){
+    const c=$("c"+i);c.innerHTML=board[i]?ICON[board[i]]:"";
+    c.disabled=over||!!board[i];c.classList.toggle("win",winLine.includes(i));
+    c.setAttribute("aria-label","Square "+(i+1)+(board[i]?": "+NAME[board[i]]:": empty"));
+  }
+}
+function result(){
+  for(const l of LINES){const[a,b,c]=l;if(board[a]&&board[a]==board[b]&&board[a]==board[c])return{w:board[a],l}}
+  return null;
+}
+function newRound(){
+  board=Array(9).fill(null);over=false;winLine=[];busy=false;
+  starter=starter=="b"?"c":"b";turn=starter;
+  $("status").textContent=NAME[turn]+"'s turn";
+  render();renderScore();maybeBot();
+}
+function click(i){
+  if(busy||(mode=="bot"&&turn=="c"))return;
+  play(i);
+}
+function play(i){
+  if(over||board[i])return;
+  board[i]=turn;
+  const r=result();
+  if(r){over=true;winLine=r.l;score[r.w]++;$("status").textContent=NAME[r.w]+" wins! Yay!";renderScore()}
+  else if(board.every(Boolean)){over=true;score.d++;$("status").textContent="It's a draw! Good game.";renderScore()}
+  else{turn=turn=="b"?"c":"b";$("status").textContent=NAME[turn]+"'s turn";}
+  render();
+  if(!over)maybeBot();
+}
+function maybeBot(){
+  if(mode=="bot"&&turn=="c"&&!over){
+    busy=true;
+    setTimeout(()=>{busy=false;if(!over&&turn=="c")play(botMove())},450);
+  }
+}
+function findWin(p){
+  for(const l of LINES){
+    const vals=l.map(i=>board[i]);
+    if(vals.filter(v=>v==p).length==2&&vals.includes(null))return l[vals.indexOf(null)];
+  }
+  return -1;
+}
+function botMove(){
+  let m=findWin("c");if(m>=0)return m;
+  m=findWin("b");if(m>=0)return m;
+  if(!board[4])return 4;
+  const pick=a=>{const f=a.filter(i=>!board[i]);return f.length?f[Math.floor(Math.random()*f.length)]:-1};
+  m=pick([0,2,6,8]);if(m>=0)return m;
+  return pick([1,3,5,7]);
+}
+function setMode(m){
+  mode=m;score={b:0,c:0,d:0};
+  $("mbot").classList.toggle("on",m=="bot");$("mfriend").classList.toggle("on",m=="friend");
+  starter="c";newRound();
+}
+$("mbot").onclick=()=>setMode("bot");
+$("mfriend").onclick=()=>setMode("friend");
+$("again").onclick=newRound;
+build();newRound();
+</script>
+</body>
+</html>

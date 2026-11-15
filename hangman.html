@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hangman</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#efe6ff;--ink:#4b3a7a;--accent:#a78bfa;--soft:#d9c8ff}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:"Nunito","Trebuchet MS",system-ui,sans-serif;font-weight:600;display:flex;flex-direction:column;align-items:center;padding:14px}
+h1{margin:0;font-size:1.6rem;font-weight:800}
+a{color:var(--accent);font-weight:800}
+#scene{width:min(260px,70vw);height:auto;margin-top:6px}
+.eh,.mh,.ms{display:none}
+.happy .en,.happy .mn,.sad .mn{display:none}
+.happy .eh,.happy .mh{display:inline}
+.sad .ms{display:inline}
+.pop{display:none}
+#msg{background:#fff;border:3px solid var(--soft);border-radius:16px;padding:8px 14px;margin:6px 0;min-height:42px;text-align:center}
+#word{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:10px 0 14px}
+#word span{width:34px;height:44px;border-bottom:4px solid var(--accent);text-align:center;font-size:1.8rem;font-weight:800;text-transform:uppercase}
+#word span.lost{color:#ff7aa8}
+#kb{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;width:100%;max-width:380px}
+.k{height:44px;border:0;border-radius:12px;background:#fff;color:var(--ink);font-family:inherit;font-weight:800;font-size:1rem;text-transform:uppercase;cursor:pointer;box-shadow:0 3px 0 var(--soft)}
+.k.hit{background:#a8e6cf;color:#1f5a43;box-shadow:none}
+.k.miss{background:#d8d0ec;color:#8a7cb0;box-shadow:none}
+.k:disabled{cursor:default}
+button.b{margin:12px 4px;padding:11px 22px;border:0;border-radius:999px;background:var(--accent);color:#fff;font-family:inherit;font-weight:800;font-size:1rem;cursor:pointer;box-shadow:0 4px 0 #8467e0}
+button:focus-visible,a:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+</style>
+</head>
+<body>
+<h1>Hangman</h1>
+<div>Guess the word before all 6 balloons pop. <a href="index.html">All games</a></div>
+<svg id="scene" class="" viewBox="0 0 240 210" aria-label="Bunny holding balloons">
+  <g id="b0"><line x1="35" y1="81" x2="120" y2="132" stroke="#b79cf0" stroke-width="2"/><ellipse cx="35" cy="60" rx="17" ry="21" fill="#ff9ec7"/><path d="M31 82l4-3 4 3z" fill="#ff9ec7"/><ellipse cx="29" cy="52" rx="4" ry="6" fill="#fff" opacity=".5"/></g>
+  <g id="b1"><line x1="70" y1="56" x2="120" y2="132" stroke="#b79cf0" stroke-width="2"/><ellipse cx="70" cy="35" rx="17" ry="21" fill="#a78bfa"/><path d="M66 57l4-3 4 3z" fill="#a78bfa"/><ellipse cx="64" cy="27" rx="4" ry="6" fill="#fff" opacity=".5"/></g>
+  <g id="b2"><line x1="105" y1="43" x2="120" y2="132" stroke="#b79cf0" stroke-width="2"/><ellipse cx="105" cy="22" rx="17" ry="21" fill="#8fd3f4"/><path d="M101 44l4-3 4 3z" fill="#8fd3f4"/><ellipse cx="99" cy="14" rx="4" ry="6" fill="#fff" opacity=".5"/></g>
+  <g id="b3"><line x1="140" y1="43" x2="120" y2="132" stroke="#b79cf0" stroke-width="2"/><ellipse cx="140" cy="22" rx="17" ry="21" fill="#a8e6cf"/><path d="M136 44l4-3 4 3z" fill="#a8e6cf"/><ellipse cx="134" cy="14" rx="4" ry="6" fill="#fff" opacity=".5"/></g>
+  <g id="b4"><line x1="175" y1="56" x2="120" y2="132" stroke="#b79cf0" stroke-width="2"/><ellipse cx="175" cy="35" rx="17" ry="21" fill="#ffd6a5"/><path d="M171 57l4-3 4 3z" fill="#ffd6a5"/><ellipse cx="169" cy="27" rx="4" ry="6" fill="#fff" opacity=".5"/></g>
+  <g id="b5"><line x1="210" y1="81" x2="120" y2="132" stroke="#b79cf0" stroke-width="2"/><ellipse cx="210" cy="60" rx="17" ry="21" fill="#f4b6ff"/><path d="M206 82l4-3 4 3z" fill="#f4b6ff"/><ellipse cx="204" cy="52" rx="4" ry="6" fill="#fff" opacity=".5"/></g>
+  <g transform="translate(85,130) scale(.7)">
+    <ellipse cx="34" cy="24" rx="9" ry="21" fill="#fff" stroke="#b79cf0" stroke-width="3"/><ellipse cx="34" cy="27" rx="4" ry="13" fill="#ffc8e2"/>
+    <ellipse cx="66" cy="24" rx="9" ry="21" fill="#fff" stroke="#b79cf0" stroke-width="3"/><ellipse cx="66" cy="27" rx="4" ry="13" fill="#ffc8e2"/>
+    <circle cx="50" cy="64" r="32" fill="#fff" stroke="#b79cf0" stroke-width="3"/>
+    <g class="en"><circle cx="39" cy="61" r="4" fill="#4b3a7a"/><circle cx="61" cy="61" r="4" fill="#4b3a7a"/></g>
+    <g class="eh"><path d="M34 63q5-8 10 0M56 63q5-8 10 0" fill="none" stroke="#4b3a7a" stroke-width="3" stroke-linecap="round"/></g>
+    <ellipse cx="30" cy="72" rx="6" ry="4" fill="#ffc8e2"/><ellipse cx="70" cy="72" rx="6" ry="4" fill="#ffc8e2"/>
+    <ellipse cx="50" cy="67" rx="3" ry="2" fill="#ff9ec7"/>
+    <path class="mn" d="M44 73q6 6 12 0" fill="none" stroke="#4b3a7a" stroke-width="2.5" stroke-linecap="round"/>
+    <path class="mh" d="M43 72q7 10 14 0z" fill="#ff9ec7" stroke="#4b3a7a" stroke-width="2.5" stroke-linejoin="round"/>
+    <path class="ms" d="M44 79q6-6 12 0" fill="none" stroke="#4b3a7a" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+</svg>
+<div id="msg" role="status"></div>
+<div id="word" aria-live="polite"></div>
+<div id="kb"></div>
+<button class="b" id="again" hidden>Play again</button>
+<script>
+const WORDS="rabbit bubble candy cookie flower garden jelly kitten lemon muffin pancake panda penguin pillow pizza pumpkin rainbow sparkle sunshine teddy unicorn waffle butterfly cupcake dolphin giraffe starfish blanket cherry cotton jungle ocean pearl puppy tulip".split(" ");
+const MAXW=6;
+const $=id=>document.getElementById(id);
+let word="",guessed=new Set(),wrong=0,over=false,lost=false,prev="";
+
+function start(){
+  do{word=WORDS[Math.floor(Math.random()*WORDS.length)]}while(word==prev);
+  prev=word;guessed=new Set();wrong=0;over=false;lost=false;
+  for(let i=0;i<MAXW;i++)$("b"+i).classList.remove("pop");
+  $("scene").setAttribute("class","");
+  $("again").hidden=true;
+  $("msg").textContent="Pick a letter! The word has "+word.length+" letters.";
+  $("kb").innerHTML="";
+  "abcdefghijklmnopqrstuvwxyz".split("").forEach(ch=>{
+    const b=document.createElement("button");b.className="k";b.id="h"+ch;b.textContent=ch;b.onclick=()=>guess(ch);$("kb").appendChild(b)});
+  showWord();
+}
+function showWord(){
+  $("word").innerHTML="";
+  word.split("").forEach(c=>{
+    const s=document.createElement("span");
+    if(guessed.has(c))s.textContent=c;
+    else if(lost){s.textContent=c;s.className="lost"}
+    $("word").appendChild(s)});
+}
+function guess(ch){
+  if(over||guessed.has(ch))return;
+  guessed.add(ch);
+  const btn=$("h"+ch);btn.disabled=true;
+  if(word.includes(ch)){btn.classList.add("hit");$("msg").textContent="Yes! There is a "+ch.toUpperCase()+"."}
+  else{btn.classList.add("miss");$("b"+wrong).classList.add("pop");wrong++;
+    $("msg").textContent="Pop! "+(MAXW-wrong)+" balloon"+(MAXW-wrong==1?"":"s")+" left."}
+  if(word.split("").every(c=>guessed.has(c))){over=true;$("scene").setAttribute("class","happy");$("msg").textContent="Yay! You saved the balloons!";$("again").hidden=false}
+  else if(wrong>=MAXW){over=true;lost=true;$("scene").setAttribute("class","sad");$("msg").textContent="Oh no! The word was "+word.toUpperCase()+".";$("again").hidden=false}
+  showWord();
+}
+document.addEventListener("keydown",e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  if(/^[a-zA-Z]$/.test(e.key))guess(e.key.toLowerCase());
+});
+$("again").onclick=start;
+start();
+</script>
+</body>
+</html>

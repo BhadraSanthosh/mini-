@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mini Games</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:#efe6ff;color:#4b3a7a;font-family:"Nunito","Trebuchet MS",system-ui,sans-serif;font-weight:600;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;text-align:center}
+h1{margin:0;font-weight:800}
+p{margin:0}
+.bun{width:110px;height:110px}
+a.g{display:block;width:min(320px,90vw);padding:16px;border-radius:24px;background:#fff;border:4px solid #d9c8ff;color:#4b3a7a;font-weight:800;font-size:1.2rem;text-decoration:none;box-shadow:0 5px 0 #d9c8ff}
+a.g small{display:block;font-weight:600;font-size:.9rem;margin-top:4px}
+a.g:active{transform:translateY(3px);box-shadow:0 2px 0 #d9c8ff}
+a:focus-visible{outline:3px solid #4b3a7a;outline-offset:3px}
+</style>
+</head>
+<body>
+<svg class="bun" viewBox="0 0 100 100" aria-hidden="true">
+  <ellipse cx="34" cy="24" rx="9" ry="21" fill="#fff" stroke="#b79cf0" stroke-width="3"/><ellipse cx="34" cy="27" rx="4" ry="13" fill="#ffc8e2"/>
+  <ellipse cx="66" cy="24" rx="9" ry="21" fill="#fff" stroke="#b79cf0" stroke-width="3"/><ellipse cx="66" cy="27" rx="4" ry="13" fill="#ffc8e2"/>
+  <circle cx="50" cy="64" r="32" fill="#fff" stroke="#b79cf0" stroke-width="3"/>
+  <path d="M34 63q5-8 10 0M56 63q5-8 10 0" fill="none" stroke="#4b3a7a" stroke-width="3" stroke-linecap="round"/>
+  <ellipse cx="30" cy="72" rx="6" ry="4" fill="#ffc8e2"/><ellipse cx="70" cy="72" rx="6" ry="4" fill="#ffc8e2"/>
+  <ellipse cx="50" cy="67" rx="3" ry="2" fill="#ff9ec7"/>
+  <path d="M43 72q7 10 14 0z" fill="#ff9ec7" stroke="#4b3a7a" stroke-width="2.5" stroke-linejoin="round"/>
+</svg>
+<h1>Mini Games</h1>
+<p>Pick a game to play with your friends!</p>
+<a class="g" href="word-guess.html">Word Guess<small>A new 5-letter puzzle every day</small></a>
+<a class="g" href="catch-the-coin.html">Catch the Coin<small>30 seconds to beat your friends</small></a>
+<a class="g" href="hangman.html">Hangman<small>Save the balloons by guessing the word</small></a>
+<a class="g" href="tic-tac-toe.html">Tic Tac Toe<small>Bunny vs Kitty, bot or friend</small></a>
+</body>
+</html>

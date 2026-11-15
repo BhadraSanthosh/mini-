@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Word Guess</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#efe6ff;--ink:#4b3a7a;--accent:#a78bfa;--soft:#d9c8ff}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:"Nunito","Trebuchet MS",system-ui,sans-serif;font-weight:600;display:flex;flex-direction:column;align-items:center;padding:14px}
+h1{margin:0;font-size:1.6rem;font-weight:800}
+a{color:var(--accent);font-weight:800}
+.top{display:flex;align-items:center;gap:10px;margin:6px 0;width:100%;max-width:380px}
+.bun{width:72px;height:72px;flex:none}
+.eh,.mh,.ms{display:none}
+.happy .en,.happy .mn,.sad .mn{display:none}
+.happy .eh,.happy .mh{display:inline}
+.sad .ms{display:inline}
+#msg{position:relative;flex:1;background:#fff;border:3px solid var(--soft);border-radius:16px;padding:10px 12px;min-height:56px;display:flex;align-items:center;line-height:1.3}
+#msg::before{content:"";position:absolute;left:-10px;top:50%;margin-top:-8px;border:8px solid transparent;border-right-color:var(--soft);border-left:0}
+#board{display:grid;gap:6px;margin:12px 0}
+.row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.t{width:56px;height:56px;display:grid;place-items:center;background:#fff;border:3px solid var(--soft);font-size:1.7rem;font-weight:800;text-transform:uppercase;border-radius:14px}
+.t.f{border-color:var(--accent)}
+.t.hit,.k.hit{background:#a8e6cf;border-color:#a8e6cf;color:#1f5a43}
+.t.near,.k.near{background:#ffd6a5;border-color:#ffd6a5;color:#7a4a10}
+.t.miss,.k.miss{background:#d8d0ec;border-color:#d8d0ec;color:#8a7cb0}
+#kb{display:flex;flex-direction:column;gap:6px;margin-top:6px;width:100%;max-width:480px}
+.kr{display:flex;gap:5px;justify-content:center}
+.k{flex:1;min-width:0;height:48px;border:0;border-radius:12px;background:#fff;color:var(--ink);font-family:inherit;font-weight:800;font-size:1rem;text-transform:uppercase;cursor:pointer;box-shadow:0 3px 0 var(--soft)}
+.k.w{flex:1.6;font-size:.8rem}
+button.b{margin:6px 4px;padding:11px 20px;border:0;border-radius:999px;background:var(--accent);color:#fff;font-family:inherit;font-weight:800;cursor:pointer;box-shadow:0 4px 0 #8467e0}
+button:focus-visible,a:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+@media (prefers-reduced-motion:no-preference){.shake{animation:s .3s}@keyframes s{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}}
+</style>
+</head>
+<body>
+<h1>Word Guess</h1>
+<div>Find the 5-letter word in 6 tries. <a href="index.html">All games</a></div>
+<div class="top">
+  <svg id="bun" class="bun" viewBox="0 0 100 100" aria-hidden="true">
+    <ellipse cx="34" cy="24" rx="9" ry="21" fill="#fff" stroke="#b79cf0" stroke-width="3"/><ellipse cx="34" cy="27" rx="4" ry="13" fill="#ffc8e2"/>
+    <ellipse cx="66" cy="24" rx="9" ry="21" fill="#fff" stroke="#b79cf0" stroke-width="3"/><ellipse cx="66" cy="27" rx="4" ry="13" fill="#ffc8e2"/>
+    <circle cx="50" cy="64" r="32" fill="#fff" stroke="#b79cf0" stroke-width="3"/>
+    <g class="en"><circle cx="39" cy="61" r="4" fill="#4b3a7a"/><circle cx="61" cy="61" r="4" fill="#4b3a7a"/></g>
+    <g class="eh"><path d="M34 63q5-8 10 0M56 63q5-8 10 0" fill="none" stroke="#4b3a7a" stroke-width="3" stroke-linecap="round"/></g>
+    <ellipse cx="30" cy="72" rx="6" ry="4" fill="#ffc8e2"/><ellipse cx="70" cy="72" rx="6" ry="4" fill="#ffc8e2"/>
+    <ellipse cx="50" cy="67" rx="3" ry="2" fill="#ff9ec7"/>
+    <path class="mn" d="M44 73q6 6 12 0" fill="none" stroke="#4b3a7a" stroke-width="2.5" stroke-linecap="round"/>
+    <path class="mh" d="M43 72q7 10 14 0z" fill="#ff9ec7" stroke="#4b3a7a" stroke-width="2.5" stroke-linejoin="round"/>
+    <path class="ms" d="M44 79q6-6 12 0" fill="none" stroke="#4b3a7a" stroke-width="2.5" stroke-linecap="round"/>
+  </svg>
+  <div id="msg" role="status"></div>
+</div>
+<div id="board"></div>
+<div id="end" hidden>
+  <button class="b" id="share">Copy result</button>
+  <button class="b" id="rand">Play a random word</button>
+</div>
+<div id="kb"></div>
+<script>
+const WORDS="apple brave chair dance eagle flame grape house image jolly knife lemon mango night ocean piano queen river smile tiger uncle vivid whale youth zebra bread cloud dream earth fresh ghost heart juice light money nurse orbit pearl quiet robot sugar toast water pizza candy beach crown eight happy lucky magic noble party quick sweet train world snack shine storm plant cabin sunny table music brain climb bloom".split(" ");
+const MAX=6,LEN=5,KEYS=["qwertyuiop","asdfghjkl","+zxcvbnm-"];
+const dayNo=Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5);
+let isDaily=true,answer="",guesses=[],cur="",over=false;
+const $=id=>document.getElementById(id);
+
+function start(daily){
+  isDaily=daily;
+  answer=daily?WORDS[dayNo%WORDS.length]:WORDS[Math.floor(Math.random()*WORDS.length)];
+  guesses=[];cur="";over=false;
+  $("end").hidden=true;$("share").textContent="Copy result";$("bun").setAttribute("class","bun");
+  $("msg").textContent=daily?"Hi! Today's word is the same for all your friends.":"A random word. Good luck!";
+  $("board").innerHTML="";
+  for(let r=0;r<MAX;r++){const row=document.createElement("div");row.className="row";row.id="r"+r;
+    for(let c=0;c<LEN;c++){const t=document.createElement("div");t.className="t";row.appendChild(t)}
+    $("board").appendChild(row)}
+  $("kb").innerHTML="";
+  KEYS.forEach(line=>{const kr=document.createElement("div");kr.className="kr";
+    [...line].forEach(ch=>{const b=document.createElement("button");b.className="k";
+      if(ch=="+"){b.textContent="Enter";b.classList.add("w");b.onclick=()=>press("Enter")}
+      else if(ch=="-"){b.textContent="Del";b.classList.add("w");b.onclick=()=>press("Backspace")}
+      else{b.textContent=ch;b.id="k"+ch;b.onclick=()=>press(ch)}
+      kr.appendChild(b)});$("kb").appendChild(kr)});
+  draw();
+}
+function draw(){
+  const row=$("r"+guesses.length);if(!row)return;
+  [...row.children].forEach((t,i)=>{t.textContent=cur[i]||"";t.classList.toggle("f",!!cur[i])});
+}
+function score(g){
+  const res=Array(LEN).fill("miss"),pool={};
+  for(let i=0;i<LEN;i++){if(g[i]==answer[i])res[i]="hit";else pool[answer[i]]=(pool[answer[i]]||0)+1}
+  for(let i=0;i<LEN;i++){if(res[i]!="hit"&&pool[g[i]]>0){res[i]="near";pool[g[i]]--}}
+  return res;
+}
+function press(k){
+  if(over)return;
+  if(k=="Backspace"){cur=cur.slice(0,-1);draw();return}
+  if(k=="Enter"){
+    if(cur.length<LEN){
+      $("msg").textContent="Oops, you need "+LEN+" letters.";
+      const r=$("r"+guesses.length);r.classList.remove("shake");void r.offsetWidth;r.classList.add("shake");return}
+    const res=score(cur);
+    [...$("r"+guesses.length).children].forEach((t,i)=>t.classList.add(res[i]));
+    [...cur].forEach((ch,i)=>{
+      const kb=$("k"+ch);
+      if(res[i]=="hit"){kb.classList.remove("near");kb.classList.add("hit")}
+      else if(res[i]=="near"){if(!kb.classList.contains("hit"))kb.classList.add("near")}
+      else if(!kb.classList.contains("hit")&&!kb.classList.contains("near"))kb.classList.add("miss")});
+    guesses.push({w:cur,res});
+    const won=cur==answer;cur="";
+    if(won){over=true;$("bun").setAttribute("class","bun happy");$("msg").textContent="Yay! You got it in "+guesses.length+"!";$("end").hidden=false}
+    else if(guesses.length==MAX){over=true;$("bun").setAttribute("class","bun sad");$("msg").textContent="So close! The word was "+answer.toUpperCase()+".";$("end").hidden=false}
+    else{$("msg").textContent="Nice try! Keep going.";draw()}
+    return;
+  }
+  if(/^[a-z]$/.test(k)&&cur.length<LEN){cur+=k;draw()}
+}
+document.addEventListener("keydown",e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  const k=e.key.length==1?e.key.toLowerCase():e.key;
+  if(k=="Enter"||k=="Backspace"||/^[a-z]$/.test(k)){if(k=="Enter"&&document.activeElement&&document.activeElement.tagName=="BUTTON")document.activeElement.blur();press(k)}
+});
+$("rand").onclick=()=>start(false);
+$("share").onclick=async()=>{
+  const won=guesses[guesses.length-1].w==answer;
+  const grid=guesses.map(g=>g.res.map(r=>({hit:"🟩",near:"🟨",miss:"⬜"})[r]).join("")).join("\n");
+  const text="Word Guess "+(isDaily?"#"+dayNo:"(random)")+" "+(won?guesses.length:"X")+"/"+MAX+"\n"+grid+"\n"+location.href.split("?")[0];
+  try{await navigator.clipboard.writeText(text);$("msg").textContent="Copied! Paste it to your friends.";$("share").textContent="Copied!"}catch(e){prompt("Copy your result:",text)}
+};
+start(true);
+</script>
+</body>
+</html>
